@@ -2,7 +2,7 @@
    ------------------------------------------------------------------
    - 필터·연도·검색·보기 방식은 주소창 쿼리(?tag=원피스&year=2024&q=린넨&view=photos)에,
      열려 있는 작품은 해시(#p=게시물ID-사진번호)에 기록한다 → 공유·북마크·뒤로가기가 동작
-   - 그리드는 48개씩, 스크롤로 2번까지 자동 추가 후 버튼으로 전환 (뒤 섹션에 닿을 수 있게)
+   - 그리드는 처음 20개, 더 보기 버튼을 누를 때만 20개씩 추가
    - 라이트박스: 로컬 대표 사진을 먼저 깔고 원본을 불러온다. 실패하면 대표 사진/안내로 대체
    - archive.json 은 원본 형식과 scripts/compact_archive.py 가 만드는 축약 형식 모두 읽는다
    ------------------------------------------------------------------ */
@@ -11,8 +11,7 @@
   const $ = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
 
-  const PAGE = 48;          // 한 번에 추가하는 카드 수
-  const AUTO_PAGES = 2;     // 스크롤로 자동 추가하는 횟수
+  const PAGE = 20;          // 한 번에 추가하는 카드 수
   const BLOG = 'https://blog.naver.com/quiltkslee';
   const IMG_HOST = 'https://postfiles.pstatic.net/';
   const ALL = '전체';
@@ -20,7 +19,7 @@
   const state = {
     items: [], byId: new Map(),
     filter: ALL, year: 'all', query: '', view: 'posts',
-    limit: PAGE, autoLoads: 0,
+    limit: PAGE,
     results: [],      // 현재 그리드에 표시 중인 {p, index} 목록
     order: [],        // 현재 조건의 작품 순서 (라이트박스 이전/다음 작품용)
     post: null, photo: 0,
@@ -164,7 +163,6 @@
   function render(reset = true) {
     if (reset) {
       state.limit = PAGE;
-      state.autoLoads = 0;
       gallery.replaceChildren();
     }
     const selected = selection();
@@ -419,17 +417,9 @@
   });
 
   loadMore.addEventListener('click', () => {
-    state.limit += PAGE; state.autoLoads = 0; render(false);
+    state.limit += PAGE; render(false);
   });
   if ('IntersectionObserver' in window) {
-    new IntersectionObserver(entries => {
-      if (!entries[0].isIntersecting || loadMore.hidden || !state.items.length || sectionNavigation) return;
-      if (state.autoLoads >= AUTO_PAGES) return;
-      state.autoLoads++;
-      state.limit += PAGE;
-      render(false);
-    }, { rootMargin: '700px 0px' }).observe($('#sentinel'));
-
     new IntersectionObserver(([e]) => {
       toolbar.classList.toggle('stuck', e.intersectionRatio < 1 && e.boundingClientRect.top <= 0);
     }, { threshold: [1], rootMargin: '-1px 0px 0px 0px' }).observe(toolbar);
